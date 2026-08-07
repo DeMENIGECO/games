@@ -1,0 +1,1640 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>🦎 Lizardoku</title>
+
+<style>
+
+*{
+    box-sizing:border-box;
+    font-family:"Trebuchet MS",sans-serif;
+}
+
+body{
+    margin:0;
+    min-height:100vh;
+    overflow:hidden;
+    background:
+    linear-gradient(#8bd450,#3c8d40);
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+}
+
+
+/* Foglie sfondo */
+
+.leaf{
+    position:absolute;
+    font-size:40px;
+    animation:fall linear infinite;
+    opacity:.5;
+}
+
+@keyframes fall{
+    from{
+        transform:translateY(-100px) rotate(0);
+    }
+    to{
+        transform:translateY(110vh) rotate(360deg);
+    }
+}
+
+
+/* contenitore */
+
+.game{
+
+    width:95%;
+    max-width:500px;
+
+    background:
+    rgba(20,70,20,.85);
+
+    border-radius:30px;
+
+    padding:20px;
+
+    text-align:center;
+
+    box-shadow:
+    0 20px 50px #194d1b;
+
+}
+
+
+/* titolo */
+
+h1{
+
+font-size:45px;
+margin:5px;
+
+}
+
+
+/* bottoni */
+
+button{
+
+border:0;
+padding:14px 25px;
+
+border-radius:20px;
+
+font-size:18px;
+
+background:#b7f34a;
+
+color:#174d19;
+
+cursor:pointer;
+
+margin:8px;
+
+transition:.2s;
+
+}
+
+
+button:hover{
+
+transform:scale(1.08);
+
+}
+
+
+
+/* menu */
+
+
+#menu{
+
+display:block;
+
+}
+
+
+#gameScreen{
+
+display:none;
+
+}
+
+
+/* informazioni */
+
+.info{
+
+display:flex;
+justify-content:space-around;
+
+font-size:18px;
+
+margin:10px;
+
+}
+
+
+/* griglia */
+
+
+.grid{
+
+display:grid;
+
+gap:5px;
+
+justify-content:center;
+
+margin:auto;
+
+}
+
+
+.cell{
+
+aspect-ratio:1;
+
+border-radius:12px;
+
+cursor:pointer;
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+font-size:28px;
+
+background:
+
+linear-gradient(
+135deg,
+#9be15d,
+#42b883
+);
+
+
+box-shadow:
+
+inset 0 0 10px #27632c;
+
+transition:.2s;
+
+}
+
+
+.cell:hover{
+
+transform:scale(1.1);
+
+filter:brightness(1.2);
+
+}
+
+
+.cell.x{
+
+background:#ddd;
+
+color:#555;
+
+}
+
+
+.cell.lizard{
+
+animation:
+
+pop .4s;
+
+background:#d4ff72;
+
+}
+
+
+@keyframes pop{
+
+0%{
+transform:scale(.2);
+}
+
+70%{
+transform:scale(1.3);
+}
+
+100%{
+transform:scale(1);
+}
+
+}
+
+
+.cell.error{
+
+animation:error .4s;
+
+}
+
+
+@keyframes error{
+
+0%,100%{
+transform:translateX(0);
+}
+
+25%{
+transform:translateX(-10px);
+}
+
+75%{
+transform:translateX(10px);
+}
+
+}
+
+
+
+/* vittoria */
+
+.win{
+
+animation:
+
+jump .8s infinite alternate;
+
+}
+
+
+@keyframes jump{
+
+to{
+
+transform:translateY(-15px);
+
+}
+
+}
+
+
+
+/* particelle */
+
+
+.particle{
+
+position:absolute;
+
+font-size:30px;
+
+animation:
+
+explode 1s forwards;
+
+}
+
+
+@keyframes explode{
+
+from{
+
+transform:scale(1);
+
+opacity:1;
+
+}
+
+to{
+
+transform:
+translateY(-120px)
+scale(0);
+
+opacity:0;
+
+}
+
+}
+
+
+</style>
+
+</head>
+
+
+<body>
+
+
+<div class="leaf">🍃</div>
+<div class="leaf">🌿</div>
+<div class="leaf">🍀</div>
+
+
+<div class="game">
+
+
+<div id="menu">
+
+
+<h1>🦎 Lizardoku</h1>
+
+<p>
+Trova tutte le lucertole nascoste!
+</p>
+
+
+<button onclick="startGame()">
+Nuova partita
+</button>
+
+
+<br>
+
+
+<button onclick="changeDifficulty()">
+Difficoltà
+</button>
+
+
+<button onclick="showRanking()">
+Classifica
+</button>
+
+
+<button onclick="settings()">
+⚙️ Impostazioni
+</button>
+
+
+</div>
+
+
+
+<div id="gameScreen">
+
+
+<h2>
+🦎 Lizardoku
+</h2>
+
+
+<div class="info">
+
+<span>
+⏱️ <b id="time">0</b>
+</span>
+
+<span>
+⭐ <b id="moves">0</b>
+</span>
+
+<span>
+💡 <b id="helps">3</b>
+</span>
+
+</div>
+
+
+
+<div id="grid" class="grid"></div>
+
+
+
+<button onclick="hint()">
+Mostra suggerimento
+</button>
+
+
+<button onclick="backMenu()">
+Menu
+</button>
+
+
+<h3 id="message"></h3>
+
+
+</div>
+
+
+
+</div>
+
+
+<script>
+
+/* =========================
+   LIZARDOKU - GAME ENGINE
+========================= */
+
+
+let size = 6;
+let level = 1;
+
+let solution = [];
+let player = [];
+
+let moves = 0;
+let seconds = 0;
+let timer;
+
+let helps = 3;
+
+let difficulty = "Facile";
+
+let bestTime =
+localStorage.getItem("lizardoku_record") || null;
+
+
+/* =========================
+   AUDIO
+========================= */
+
+
+const audioContext =
+new (window.AudioContext || window.webkitAudioContext)();
+
+
+function sound(freq,duration=0.1){
+
+    let osc =
+    audioContext.createOscillator();
+
+    let gain =
+    audioContext.createGain();
+
+    osc.frequency.value=freq;
+
+    osc.connect(gain);
+    gain.connect(audioContext.destination);
+
+    osc.start();
+
+    gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        audioContext.currentTime+duration
+    );
+
+    osc.stop(
+        audioContext.currentTime+duration
+    );
+
+}
+
+
+
+/* =========================
+   START GAME
+========================= */
+
+
+function startGame(){
+
+    document.getElementById("menu").style.display="none";
+    document.getElementById("gameScreen").style.display="block";
+
+
+    generatePuzzle();
+
+    startTimer();
+
+}
+
+
+
+/* =========================
+   DIFFICOLTA'
+========================= */
+
+
+function changeDifficulty(){
+
+    if(size===6){
+
+        size=8;
+        difficulty="Normale";
+
+    }
+    else if(size===8){
+
+        size=10;
+        difficulty="Difficile";
+
+    }
+    else if(size===10){
+
+        size=12;
+        difficulty="Esperto";
+
+    }
+    else{
+
+        size=6;
+        difficulty="Facile";
+
+    }
+
+
+    alert(
+    "Difficoltà: "+difficulty+
+    "\nGriglia: "+size+"x"+size
+    );
+
+}
+
+
+
+
+/* =========================
+   GENERAZIONE PUZZLE
+========================= */
+
+
+function generatePuzzle(){
+
+
+    solution=[];
+
+
+    for(let r=0;r<size;r++){
+
+        solution[r]=[];
+
+        for(let c=0;c<size;c++){
+
+            solution[r][c]=false;
+
+        }
+
+    }
+
+
+
+    let lizards=size;
+
+
+
+    let attempts=0;
+
+
+
+    while(
+        countLizards()<lizards &&
+        attempts<5000
+    ){
+
+        attempts++;
+
+
+        let r=
+        Math.floor(Math.random()*size);
+
+        let c=
+        Math.floor(Math.random()*size);
+
+
+
+        if(canPlace(r,c)){
+
+
+            solution[r][c]=true;
+
+
+        }
+
+
+    }
+
+
+
+    createBoard();
+
+
+}
+
+
+
+
+
+function countLizards(){
+
+    let total=0;
+
+
+    for(let r=0;r<size;r++){
+
+        for(let c=0;c<size;c++){
+
+            if(solution[r][c])
+            total++;
+
+        }
+
+    }
+
+    return total;
+
+}
+
+
+
+
+
+function canPlace(r,c){
+
+
+    for(let y=0;y<size;y++){
+
+        if(solution[y][c])
+        return false;
+
+    }
+
+
+    for(let x=0;x<size;x++){
+
+        if(solution[r][x])
+        return false;
+
+    }
+
+
+
+    for(let y=-1;y<=1;y++){
+
+        for(let x=-1;x<=1;x++){
+
+
+            let nr=r+y;
+            let nc=c+x;
+
+
+            if(
+            nr>=0 &&
+            nc>=0 &&
+            nr<size &&
+            nc<size
+            ){
+
+                if(solution[nr][nc])
+                return false;
+
+            }
+
+
+        }
+
+    }
+
+
+    return true;
+
+
+}
+
+
+
+
+
+/* =========================
+   CREA GRIGLIA
+========================= */
+
+
+function createBoard(){
+
+
+let grid=
+document.getElementById("grid");
+
+
+grid.innerHTML="";
+
+
+grid.style.gridTemplateColumns=
+`repeat(${size},1fr)`;
+
+
+player=[];
+
+
+for(let r=0;r<size;r++){
+
+
+player[r]=[];
+
+
+for(let c=0;c<size;c++){
+
+
+player[r][c]="";
+
+
+
+let cell=
+document.createElement("div");
+
+
+cell.className="cell";
+
+
+
+let colors=[
+"#8BC34A",
+"#7CB342",
+"#AED581",
+"#66BB6A",
+"#4CAF50",
+"#9CCC65"
+];
+
+
+cell.style.background=
+colors[
+Math.floor(Math.random()*colors.length)
+];
+
+
+
+cell.onclick=function(){
+
+    clickCell(r,c,cell);
+
+};
+
+
+
+grid.appendChild(cell);
+
+
+
+}
+
+
+}
+
+
+moves=0;
+seconds=0;
+helps=3;
+
+
+document.getElementById("moves").innerHTML=0;
+document.getElementById("time").innerHTML=0;
+document.getElementById("helps").innerHTML=3;
+
+document.getElementById("message").innerHTML="";
+
+}
+
+
+
+
+/* =========================
+   CLICK CASELLA
+========================= */
+
+
+function clickCell(r,c,cell){
+
+
+sound(400);
+
+
+
+if(player[r][c]===""){
+
+
+player[r][c]="x";
+
+cell.innerHTML="❌";
+
+cell.classList.add("x");
+
+
+
+sound(250);
+
+
+}
+
+else if(player[r][c]==="x"){
+
+
+player[r][c]="lizard";
+
+
+cell.innerHTML="🦎";
+
+
+cell.classList.remove("x");
+
+cell.classList.add("lizard");
+
+
+
+checkLizard(r,c,cell);
+
+
+}
+
+
+else{
+
+
+player[r][c]="";
+
+
+cell.innerHTML="";
+
+
+cell.className="cell";
+
+
+}
+
+
+
+moves++;
+
+document.getElementById("moves").innerHTML=moves;
+
+
+}
+
+
+
+
+/* =========================
+   CONTROLLO LUCERTOLA
+========================= */
+
+
+function checkLizard(r,c,cell){
+
+
+if(!solution[r][c]){
+
+
+cell.classList.add("error");
+
+
+navigator.vibrate?.(200);
+
+
+document.getElementById("message").innerHTML=
+"❌ Questa lucertola non può stare qui!";
+
+
+setTimeout(()=>{
+
+cell.classList.remove("error");
+
+},500);
+
+
+
+sound(100);
+
+
+
+}
+
+
+else{
+
+
+createParticles(cell);
+
+
+sound(700);
+
+
+checkWin();
+
+
+}
+
+
+}
+
+
+
+
+
+/* =========================
+   PARTICELLE
+========================= */
+
+
+function createParticles(cell){
+
+
+let rect=
+cell.getBoundingClientRect();
+
+
+for(let i=0;i<5;i++){
+
+
+let p=
+document.createElement("div");
+
+
+p.className="particle";
+
+p.innerHTML="🍃";
+
+
+p.style.left=
+rect.left+20+"px";
+
+
+p.style.top=
+rect.top+"px";
+
+
+document.body.appendChild(p);
+
+
+
+setTimeout(()=>p.remove(),1000);
+
+
+}
+
+
+
+}
+
+
+
+/* =========================
+   VITTORIA
+========================= */
+
+
+function checkWin(){
+
+
+for(let r=0;r<size;r++){
+
+for(let c=0;c<size;c++){
+
+
+if(
+solution[r][c] &&
+player[r][c]!=="lizard"
+){
+
+return;
+
+}
+
+
+}
+
+
+}
+
+
+win();
+
+
+}
+
+
+
+
+function win(){
+
+
+clearInterval(timer);
+
+
+document.getElementById("message").innerHTML=
+"🎉 Complimenti! Hai trovato tutte le lucertole!";
+
+
+let cells=
+document.querySelectorAll(".cell.lizard");
+
+
+cells.forEach(c=>{
+
+c.classList.add("win");
+
+});
+
+
+
+if(
+!bestTime ||
+seconds<bestTime
+){
+
+localStorage.setItem(
+"lizardoku_record",
+seconds
+);
+
+
+bestTime=seconds;
+
+}
+
+
+sound(900,.5);
+
+
+
+}
+
+
+
+/* =========================
+   TIMER
+========================= */
+
+
+function startTimer(){
+
+
+clearInterval(timer);
+
+
+timer=setInterval(()=>{
+
+
+seconds++;
+
+
+document.getElementById("time")
+.innerHTML=seconds;
+
+
+},1000);
+
+
+
+}
+
+
+
+
+/* =========================
+   MENU
+========================= */
+
+
+function backMenu(){
+
+
+clearInterval(timer);
+
+
+document.getElementById("menu")
+.style.display="block";
+
+
+document.getElementById("gameScreen")
+.style.display="none";
+
+
+}
+
+
+
+function showRanking(){
+
+alert(
+"🏆 Record migliore: "+
+(bestTime ? bestTime+" secondi":"nessuno")
+);
+
+}
+
+
+function settings(){
+
+alert(
+"🦎 Lizardoku\n"+
+"Gioco puzzle rilassante con lucertole!"
+);
+
+}
+
+  /* =========================
+   PARTE 3
+   EXTRA FEATURES
+========================= */
+
+
+/* =========================
+   SUGGERIMENTO
+========================= */
+
+
+function hint(){
+
+
+if(helps<=0){
+
+alert(
+"💡 Hai finito gli aiuti!"
+);
+
+return;
+
+}
+
+
+
+let empty=[];
+
+
+for(let r=0;r<size;r++){
+
+for(let c=0;c<size;c++){
+
+
+if(
+solution[r][c] &&
+player[r][c]!=="lizard"
+){
+
+empty.push({
+r:r,
+c:c
+});
+
+
+}
+
+
+}
+
+}
+
+
+
+if(empty.length===0)
+return;
+
+
+
+let choice=
+empty[
+Math.floor(
+Math.random()*empty.length
+)
+];
+
+
+
+let cells=
+document.querySelectorAll(".cell");
+
+
+let index=
+choice.r*size+choice.c;
+
+
+
+cells[index].style.boxShadow=
+"0 0 20px yellow";
+
+
+setTimeout(()=>{
+
+cells[index].style.boxShadow="";
+
+},1500);
+
+
+
+helps--;
+
+
+document.getElementById("helps")
+.innerHTML=helps;
+
+
+playSound(600);
+
+
+
+}
+
+
+
+
+
+/* =========================
+   LIVELLI
+========================= */
+
+
+let savedLevel =
+localStorage.getItem(
+"lizardoku_level"
+);
+
+
+
+if(savedLevel){
+
+level=parseInt(savedLevel);
+
+}
+
+
+
+
+function nextLevel(){
+
+
+level++;
+
+
+if(level%3===0 && size<12){
+
+size+=2;
+
+}
+
+
+
+localStorage.setItem(
+"lizardoku_level",
+level
+);
+
+
+
+alert(
+"🦎 Livello "+level+
+"\nNuova sfida!"
+);
+
+
+
+startGame();
+
+
+}
+
+
+
+
+
+/* =========================
+   SALVATAGGIO
+========================= */
+
+
+function saveProgress(){
+
+
+let data={
+
+level:level,
+
+record:record,
+
+difficulty:difficulty
+
+};
+
+
+
+localStorage.setItem(
+"lizardoku_save",
+JSON.stringify(data)
+);
+
+
+}
+
+
+
+window.addEventListener(
+"beforeunload",
+saveProgress
+);
+
+
+
+
+
+
+/* =========================
+   CLASSIFICA
+========================= */
+
+
+function showRanking(){
+
+
+let r=
+localStorage.getItem(
+"lizardoku_record"
+);
+
+
+if(r){
+
+alert(
+"🏆 Record Lizardoku\n\n"+
+r+" secondi"
+);
+
+
+}
+
+else{
+
+
+alert(
+"🏆 Nessun record ancora!"
+);
+
+
+}
+
+
+}
+
+
+
+
+
+/* =========================
+   IMPOSTAZIONI
+========================= */
+
+
+let music=false;
+
+
+function settings(){
+
+
+music=!music;
+
+
+if(music){
+
+startMusic();
+
+
+alert(
+"🎵 Musica rilassante attivata"
+);
+
+}
+
+else{
+
+
+alert(
+"🔇 Musica disattivata"
+);
+
+
+}
+
+
+}
+
+
+
+
+
+/* =========================
+   MUSICA WEB AUDIO
+========================= */
+
+
+let musicTimer;
+
+
+
+function startMusic(){
+
+
+if(musicTimer)
+return;
+
+
+let notes=[
+220,260,330,392
+];
+
+
+let i=0;
+
+
+
+musicTimer=setInterval(()=>{
+
+
+if(!music)
+return;
+
+
+
+playSound(
+notes[i%notes.length],
+0.5
+);
+
+
+i++;
+
+
+
+},1200);
+
+
+
+}
+
+
+
+
+
+/* =========================
+   ANIMAZIONE CODA
+========================= */
+
+
+function animateLizard(cell){
+
+
+cell.style.transform=
+"rotate(5deg)";
+
+
+setTimeout(()=>{
+
+
+cell.style.transform=
+"rotate(-5deg)";
+
+
+},150);
+
+
+
+}
+
+
+
+
+
+/* =========================
+   FOGLIE AUTOMATICHE
+========================= */
+
+
+function createLeaves(){
+
+
+for(let i=0;i<15;i++){
+
+
+let leaf=
+document.createElement("div");
+
+
+leaf.className="leaf";
+
+
+leaf.innerHTML=
+[
+"🍃",
+"🌿",
+"🍀"
+]
+[
+Math.floor(
+Math.random()*3
+)
+];
+
+
+
+leaf.style.left=
+Math.random()*100+"%";
+
+
+leaf.style.animationDuration=
+(5+
+Math.random()*8)
++"s";
+
+
+
+leaf.style.animationDelay=
+Math.random()*5+"s";
+
+
+
+document.body.appendChild(leaf);
+
+
+
+}
+
+
+}
+
+
+
+createLeaves();
+
+
+
+
+
+
+/* =========================
+   MOBILE TOUCH
+========================= */
+
+
+document.addEventListener(
+"touchstart",
+()=>{
+
+
+if(audio.state==="suspended"){
+
+audio.resume();
+
+}
+
+
+},
+{
+once:true
+}
+);
+
+
+
+
+
+
+/* =========================
+   CARICAMENTO DATI
+========================= */
+
+
+function loadGame(){
+
+
+let data=
+localStorage.getItem(
+"lizardoku_save"
+);
+
+
+
+if(data){
+
+
+let save=
+JSON.parse(data);
+
+
+
+level=
+save.level || 1;
+
+
+record=
+save.record || null;
+
+
+
+}
+
+
+}
+
+
+
+loadGame();
+
+</script>
+
+
+</body>
+</html>
