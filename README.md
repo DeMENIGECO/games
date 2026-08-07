@@ -56,4 +56,4 @@ Puoi aprire una **Issue** e condividere la tua idea!
 
 🎮 **Divertiti con i giochi!**
 
-Creati da **DomeniGeco** 🦎
+Creati da **DomeniGeco** 🦎 e la **Community**
