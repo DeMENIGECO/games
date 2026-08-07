@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CorriDome</title>
+
+<style>
+* {
+    box-sizing: border-box;
+    user-select: none;
+}
+
+body {
+    margin: 0;
+    background: linear-gradient(#87ceeb, #dff6ff);
+    font-family: Arial, sans-serif;
+    overflow: hidden;
+}
+
+#game {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+}
+
+#info {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    font-size: 22px;
+    font-weight: bold;
+    z-index: 10;
+}
+
+#player {
+    position: absolute;
+    bottom: 80px;
+    left: 80px;
+    width: 55px;
+    height: 55px;
+    background: #32cd32;
+    border-radius: 50%;
+    border: 4px solid #1b7f1b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+}
+
+.jump {
+    animation: jump 0.6s;
+}
+
+@keyframes jump {
+    0% { bottom: 80px; }
+    50% { bottom: 220px; }
+    100% { bottom: 80px; }
+}
+
+#ground {
+    position: absolute;
+    bottom: 0;
+    height: 80px;
+    width: 100%;
+    background: #4caf50;
+}
+
+.obstacle {
+    position: absolute;
+    bottom: 80px;
+    right: -60px;
+    width: 45px;
+    height: 70px;
+    background: #8b4513;
+    border-radius: 10px;
+}
+
+.coin {
+    position: absolute;
+    bottom: 160px;
+    right: -50px;
+    font-size: 35px;
+}
+
+#gameover {
+    display: none;
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    color: white;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    font-size: 35px;
+    z-index: 20;
+}
+
+button {
+    margin-top: 20px;
+    padding: 12px 25px;
+    font-size: 20px;
+    border: none;
+    border-radius: 10px;
+    background: #32cd32;
+}
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+<div id="info">
+⭐ Punti: <span id="score">0</span>
+<br>
+🏆 Record: <span id="record">0</span>
+</div>
+
+<div id="player">😎</div>
+
+<div id="ground"></div>
+
+<div id="gameover">
+    Game Over! 💥
+    <br>
+    <span id="final"></span>
+    <button onclick="restart()">Rigioca</button>
+</div>
+
+</div>
+
+
+<script>
+
+const player = document.getElementById("player");
+const game = document.getElementById("game");
+const scoreText = document.getElementById("score");
+const recordText = document.getElementById("record");
+const gameover = document.getElementById("gameover");
+const final = document.getElementById("final");
+
+let score = 0;
+let speed = 6;
+let playing = true;
+
+let record = localStorage.getItem("corriDomeRecord") || 0;
+recordText.textContent = record;
+
+
+function jump(){
+
+    if(!playing) return;
+
+    if(!player.classList.contains("jump")){
+        player.classList.add("jump");
+
+        setTimeout(()=>{
+            player.classList.remove("jump");
+        },600);
+    }
+}
+
+
+document.addEventListener("keydown", e=>{
+    if(e.code === "Space" || e.code === "ArrowUp"){
+        jump();
+    }
+});
+
+document.addEventListener("touchstart", jump);
+
+
+
+function createObstacle(){
+
+    if(!playing) return;
+
+    let obs = document.createElement("div");
+    obs.className="obstacle";
+    game.appendChild(obs);
+
+    let pos = -60;
+
+    let move = setInterval(()=>{
+
+        if(!playing){
+            clearInterval(move);
+            obs.remove();
+            return;
+        }
+
+        pos += speed;
+        obs.style.right = pos + "px";
+
+
+        let p = player.getBoundingClientRect();
+        let o = obs.getBoundingClientRect();
+
+        if(
+            p.left < o.right &&
+            p.right > o.left &&
+            p.bottom > o.top
+        ){
+            endGame();
+        }
+
+
+        if(pos > window.innerWidth + 100){
+            clearInterval(move);
+            obs.remove();
+        }
+
+    },20);
+
+    setTimeout(createObstacle,1500 + Math.random()*1500);
+}
+
+
+
+function createCoin(){
+
+    if(!playing) return;
+
+    let coin=document.createElement("div");
+    coin.className="coin";
+    coin.innerHTML="⭐";
+    game.appendChild(coin);
+
+    let pos=-50;
+
+    let move=setInterval(()=>{
+
+        pos+=speed;
+        coin.style.right=pos+"px";
+
+        let p=player.getBoundingClientRect();
+        let c=coin.getBoundingClientRect();
+
+        if(
+            p.left<c.right &&
+            p.right>c.left &&
+            p.top<c.bottom &&
+            p.bottom>c.top
+        ){
+            score+=10;
+            scoreText.textContent=score;
+            coin.remove();
+            clearInterval(move);
+        }
+
+        if(pos>window.innerWidth+100){
+            coin.remove();
+            clearInterval(move);
+        }
+
+    },20);
+
+    setTimeout(createCoin,3000+Math.random()*3000);
+}
+
+
+
+setInterval(()=>{
+
+    if(playing){
+        score++;
+        scoreText.textContent=score;
+
+        if(score%100===0)
+            speed+=0.5;
+    }
+
+},100);
+
+
+
+function endGame(){
+
+    playing=false;
+
+    if(score>record){
+        record=score;
+        localStorage.setItem("corriDomeRecord",record);
+    }
+
+    final.textContent="Punti: "+score;
+    gameover.style.display="flex";
+}
+
+
+
+function restart(){
+
+    location.reload();
+
+}
+
+
+
+createObstacle();
+createCoin();
+
+</script>
+
+</body>
+</html>
