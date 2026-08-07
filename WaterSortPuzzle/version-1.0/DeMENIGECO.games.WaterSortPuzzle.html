@@ -202,44 +202,61 @@ document.getElementById("menu").style.display="none";
 document.getElementById("game").style.display="block";
 
 
-let count=Math.min(3+Math.floor(n/3),10);
+let colorsCount=Math.min(3+Math.floor(n/3),10);
+
+let tubes=[];
 
 
-let data=[];
+// Creo i colori mescolati
+let liquids=[];
 
+for(let i=0;i<colorsCount;i++){
 
-for(let i=0;i<count;i++){
-
-let arr=[];
-
-for(let j=0;j<4;j++)
-arr.push(colors[i]);
-
-data.push(arr);
+    for(let j=0;j<4;j++){
+        liquids.push(colors[i]);
+    }
 
 }
 
 
-data.sort(()=>Math.random()-0.5);
+// Mescolo più volte in base alla difficoltà
+for(let i=0;i<n*10;i++){
+
+    liquids.sort(()=>Math.random()-0.5);
+
+}
 
 
-data.push([]);
-data.push([]);
+// Creo bottiglie
+for(let i=0;i<colorsCount;i++){
+
+    tubes.push(
+        liquids.splice(0,4)
+    );
+
+}
 
 
+// Bottiglie vuote
+tubes.push([]);
+tubes.push([]);
+
+
+// Bonus bottiglia extra
 if(n>=10)
-data.push([]);
+    tubes.push([]);
 
 
-bottles=data;
+bottles=tubes;
 
 moves=0;
 history=[];
+selected=null;
+
 
 render();
 
 }
-
 
 
 function render(){
@@ -413,44 +430,43 @@ loadLevel(currentLevel);
 
 
 function checkWin(){
+function checkWin(){
 
-
-let win=true;
+let completed=0;
 
 
 for(let b of bottles){
 
-if(
-b.length &&
-(
-b.length!==4 ||
-!b.every(x=>x===b[0])
-)
-)
-
-win=false;
+    if(
+        b.length===4 &&
+        b.every(x=>x===b[0])
+    ){
+        completed++;
+    }
 
 }
 
 
-if(win){
+// Vince solo se tutte le bottiglie con liquido sono completate
+let filled=bottles.filter(b=>b.length>0).length;
+
+
+if(completed===filled){
 
 setTimeout(()=>{
 
-alert("🎉 Livello completato!");
+alert("🎉 Livello "+currentLevel+" completato!");
 
 if(currentLevel===unlocked)
-unlocked++;
+    unlocked++;
 
 createLevels();
 
-},200);
+},300);
 
 }
 
-
 }
-
 
 
 function nextLevel(){
