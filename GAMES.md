@@ -20,7 +20,7 @@ Un gioco di logica in cui devi trovare le lucertoline!
 - 🔢 Versione: 1.0.
 - 💻 Piattaforma: Web
 - 📁 Cartella: `LizardHunt`
-- 🌍 PR: [#02](pulls/02)
+- 🌍 PR: [#02](../../pulls/02)
 
 👉 [Vai a Lizard Hunt](LizardHunt)
 
@@ -32,6 +32,6 @@ Un gioco endless game in cui mi fate correre!
 - 🔢 Versione: 1.0.0
 - 💻 Piattaforma: Web
 - 📁 Cartella: `CorriDome`
-- 🌍 PR: [#03](pulls/03)
+- 🌍 PR: [#03](../../pulls/03)
 
 👉 [Vai a Lizardoku](Lizardoku)
