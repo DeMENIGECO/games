@@ -6,7 +6,7 @@ Qui puoi trovare tutti i giochi che ho creato, pronti per essere scaricati e gio
 
 ## 🕹️ Giochi
 
-Per vedere i giochi, vedi [GAMES.md]
+Per vedere i giochi, vedi [GAMES.md](GAMES.md)
 
 ## 📥 Download
 
