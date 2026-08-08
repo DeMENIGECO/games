@@ -6,16 +6,7 @@ Qui puoi trovare tutti i giochi che ho creato, pronti per essere scaricati e gio
 
 ## 🕹️ Giochi
 
-### 🦎 Lizardoku
-
-Un gioco di logica ispirato al Sudoku, con un simpatico tema a lucertole! 🦎
-
-- 🎮 Genere: Puzzle / Logica
-- 🔢 Versione: 1.0.0
-- 💻 Piattaforma: Web
-- 📁 Cartella: `Lizardoku`
-
-👉 [Vai a Lizardoku](Lizardoku)
+Per vedere i giochi, vedi [GAMES.md]
 
 ## 📥 Download
 
@@ -28,12 +19,6 @@ Ogni gioco può avere più versioni, così da poter conservare anche quelle prec
 Questa repository è in continua crescita.
 
 In futuro verranno aggiunti nuovi giochi, con generi e meccaniche differenti. 🎮✨
-
-## 📋 Giochi disponibili
-
-| Gioco | Genere | Versione |
-| --- | --- | --- |
-| 🦎 Lizardoku | Puzzle / Logica | 1.0.0 |
 
 ## 🐛 Segnalazione bug
 
