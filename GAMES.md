@@ -34,4 +34,4 @@ Un gioco endless game in cui mi fate correre!
 - 📁 Cartella: `CorriDome`
 - 🌍 PR: [#02](../../pull/2)
 
-👉 [Vai a Lizardoku](Lizardoku)
+👉 [Vai a CorriDome](CorriDome)
