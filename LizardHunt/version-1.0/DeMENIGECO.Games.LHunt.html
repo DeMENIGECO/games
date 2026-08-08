@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Lizard Hunt 🦎</title>
+<style>
+:root{--bg:#0e160f;--panel:#18231a;--text:#f2f7f2;--muted:#aebcaf;--accent:#72df78;--danger:#ff6868;--cell:min(9vw,58px)}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#29452b,var(--bg) 48%);color:var(--text);font-family:Arial,sans-serif;min-height:100vh}.app{max-width:1100px;margin:auto;padding:18px}header{text-align:center}h1{font-size:clamp(2rem,7vw,3.5rem);margin:8px 0}.sub{color:var(--muted)}.controls{display:flex;gap:9px;flex-wrap:wrap;justify-content:center;background:#18231aeF;padding:13px;border:1px solid #365139;border-radius:18px;margin:18px 0}button,select{background:#223025;color:var(--text);border:1px solid #48604a;border-radius:11px;padding:10px 13px;font-size:15px}button{cursor:pointer}button.active{background:#3b9843;border-color:#82e588}.stats{text-align:center;color:var(--muted);margin:12px}.stats b{color:white}.board-wrap{display:flex;justify-content:center;overflow:auto;padding:8px}.board{display:grid;border:4px solid #081008;box-shadow:0 15px 40px #0007}.cell{width:var(--cell);height:var(--cell);min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center;font-size:calc(var(--cell)*.57);cursor:pointer;user-select:none;border-right:1px solid #0003;border-bottom:1px solid #0003;transition:.12s}.cell:hover{filter:brightness(1.15)}.cell.x{font-size:calc(var(--cell)*.42);font-weight:bold;color:#172018}.cell.found{cursor:default;box-shadow:inset 0 0 0 3px #fff9}.cell.error{animation:shake .25s;box-shadow:inset 0 0 0 4px var(--danger)}@keyframes shake{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}.message{text-align:center;min-height:30px;margin:10px;font-weight:bold}.good{color:var(--accent)}.bad{color:var(--danger)}.rules{background:#18231aeb;border:1px solid #365139;border-radius:18px;padding:16px;margin-top:18px}.rules li{margin:7px 0;color:#d8e2d8}.legend{text-align:center;color:var(--muted);margin:12px}
+</style>
+</head>
+<body>
+<div class="app">
+<header><h1>🦎 Lizard Hunt</h1><div class="sub">Trova le lucertoline usando la logica!</div></header>
+
+<div class="controls">
+<label>Griglia:
+<select id="size">
+<option>4</option><option>5</option><option>6</option><option selected>7</option><option>8</option><option>9</option><option>10</option>
+</select> ×
+<span id="sizeLabel">7</span>
+</label>
+<label>Livello:
+<select id="level">
+<option value="1" selected>1 - Facile</option>
+<option value="2">2 - Medio</option>
+<option value="3">3 - Difficile</option>
+<option value="4">4 - Esperto</option>
+<option value="5">5 - Estremo</option>
+</select>
+</label>
+<button id="lizardMode" class="active">🦎 Trova lucertola</button>
+<button id="xMode">❌ Segna X</button>
+<button id="newGame">🔄 Nuovo puzzle</button>
+<button id="check">✓ Controlla</button>
+</div>
+
+<div class="stats">
+Lucertole trovate: <b id="found">0</b>/<b id="total">0</b>
+&nbsp; • &nbsp; Tentativi sbagliati: <b id="mistakes">0</b>
+</div>
+
+<div class="board-wrap"><div id="board" class="board"></div></div>
+<div id="message" class="message"></div>
+<div class="legend">🦎 = lucertola trovata &nbsp;&nbsp; ❌ = casella esclusa</div>
+
+<section class="rules">
+<h2>📜 Regole</h2>
+<ul>
+<li>Ogni area colorata contiene <b>al massimo una lucertola</b>.</li>
+<li>Ci sono esattamente tante lucertole quante sono le righe della griglia.</li>
+<li>Due lucertole non possono stare sulla stessa riga.</li>
+<li>Due lucertole non possono stare sulla stessa colonna.</li>
+<li>Due lucertole non possono essere adiacenti, nemmeno diagonalmente.</li>
+<li>Se clicchi una casella in modalità 🦎, stai facendo un tentativo: se è vuota hai sbagliato.</li>
+<li>La ❌ serve solo per annotare le caselle che hai dedotto essere vuote.</li>
+<li>Il puzzle e la sua soluzione sono generati in modo deterministico, senza casualità.</li>
+</ul>
+</section>
+</div>
+
+<script>
+"use strict";
+
+const COLORS=["#78c878","#72a9db","#d99a67","#bd83d8","#d8c75d","#66c7b5","#d77890","#8999e8","#b6cf69","#d08bc8"];
+let N=7,level=1,solution=[],regions=[],state=[],mode="lizard",mistakes=0;
+
+const board=document.getElementById("board");
+const sizeSel=document.getElementById("size");
+const levelSel=document.getElementById("level");
+const sizeLabel=document.getElementById("sizeLabel");
+const foundEl=document.getElementById("found");
+const totalEl=document.getElementById("total");
+const mistakesEl=document.getElementById("mistakes");
+const msg=document.getElementById("message");
+const lizardBtn=document.getElementById("lizardMode");
+const xBtn=document.getElementById("xMode");
+
+/* Hash deterministico: niente Math.random(). */
+function hash(a,b,c,d){
+ let x=Math.imul((a+0x9e3779b9)|0,0x85ebca6b)^Math.imul((b+0xc2b2ae35)|0,0x27d4eb2f)^Math.imul((c+0x165667b1)|0,0x1b873593)^Math.imul((d+0xd3a2646c)|0,0x85ebca77);
+ x^=x>>>16;x=Math.imul(x,0x7feb352d);x^=x>>>15;x=Math.imul(x,0x846ca68b);x^=x>>>16;
+ return x>>>0;
+}
+
+/*
+ * Soluzione: una lucertola per riga.
+ * Vincoli:
+ * - colonne diverse
+ * - niente adiacenza diagonale
+ * - regioni diverse
+ */
+function solve(reg,wanted=2){
+ const n=reg.length,cols=Array(n).fill(false),areas=Array(n).fill(false),a=new Set(),b=new Set(),answers=[];
+ function go(r,p){
+  if(answers.length>=wanted)return;
+  if(r===n){answers.push(p.slice());return}
+  const candidates=[];
+  for(let c=0;c<n;c++) candidates.push({c,s:hash(n,level,r,c)});
+  candidates.sort((x,y)=>x.s-y.s);
+  for(const q of candidates){
+   const c=q.c,area=reg[r][c];
+   if(cols[c]||areas[area]||a.has(r-c)||b.has(r+c))continue;
+   cols[c]=areas[area]=true;a.add(r-c);b.add(r+c);p.push(c);
+   go(r+1,p);
+   p.pop();cols[c]=areas[area]=false;a.delete(r-c);b.delete(r+c);
+   if(answers.length>=wanted)return;
+  }
+ }
+ go(0,[]);
+ return answers;
+}
+
+function baseSolution(n){
+ const cols=Array(n).fill(false),a=new Set(),b=new Set(),p=[];
+ function go(r){
+  if(r===n)return true;
+  const cs=Array.from({length:n},(_,c)=>({c,s:hash(n,level,r,c)})).sort((x,y)=>x.s-y.s);
+  for(const q of cs){
+   const c=q.c;
+   if(cols[c]||a.has(r-c)||b.has(r+c))continue;
+   cols[c]=true;a.add(r-c);b.add(r+c);p.push(c);
+   if(go(r+1))return true;
+   p.pop();cols[c]=false;a.delete(r-c);b.delete(r+c);
+  }
+  return false;
+ }
+ go(0);return p;
+}
+
+/*
+ * Costruisce aree connesse partendo dalle posizioni
+ * della soluzione. Ogni area ha un seme diverso.
+ */
+function makeRegions(n,sol,attempt){
+ const reg=Array.from({length:n},()=>Array(n).fill(-1));
+ const queue=[];
+ for(let r=0;r<n;r++){reg[r][sol[r]]=r;frontier(r,sol[r],r)}
+ let count=n;
+
+ while(count<n*n){
+  queue.sort((x,y)=>x.score-y.score);
+  let item=null;
+  while(queue.length){
+   const q=queue.shift();
+   if(reg[q.r][q.c]===-1){item=q;break}
+  }
+  if(!item)break;
+  reg[item.r][item.c]=item.area;count++;
+  frontier(item.r,item.c,item.area);
+ }
+
+ function frontier(r,c,area){
+  for(const [dr,dc] of [[1,0],[-1,0],[0,1],[0,-1]]){
+   const rr=r+dr,cc=c+dc;
+   if(rr<0||rr>=n||cc<0||cc>=n||reg[rr][cc]!==-1)continue;
+   queue.push({r:rr,c:cc,area,score:hash(n,level+attempt,rr*n+cc,area)});
+  }
+ }
+ return reg;
+}
+
+function generate(){
+ N=+sizeSel.value;level=+levelSel.value;sizeLabel.textContent=N;
+ const base=baseSolution(N);
+ let chosen=null;
+
+ /* Cerca un layout con soluzione unica. */
+ for(let attempt=0;attempt<150;attempt++){
+  const candidate=makeRegions(N,base,attempt);
+  const solutions=solve(candidate,2);
+  if(solutions.length===1){chosen=candidate;break}
+ }
+ if(!chosen)chosen=makeRegions(N,base,0);
+
+ regions=chosen;
+ const sols=solve(regions,2);
+ solution=sols.length?sols[0]:base;
+
+ state=Array.from({length:N},()=>Array(N).fill(""));
+ mistakes=0;
+ totalEl.textContent=N;mistakesEl.textContent=0;msg.textContent="";msg.className="message";
+ render();update();
+}
+
+function render(){
+ board.innerHTML="";
+ board.style.gridTemplateColumns=`repeat(${N},var(--cell))`;
+
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++){
+  const cell=document.createElement("div");
+  cell.className="cell";
+  cell.style.background=COLORS[regions[r][c]%COLORS.length];
+
+  if(state[r][c]==="found"){
+   cell.textContent="🦎";cell.classList.add("found");
+  }else if(state[r][c]==="x"){
+   cell.textContent="✕";cell.classList.add("x");
+  }
+
+  cell.addEventListener("click",()=>clickCell(r,c));
+  board.appendChild(cell);
+ }
+}
+
+/*
+ * QUI È LA DIFFERENZA IMPORTANTE:
+ * in modalità lucertola non "piazzi" una lucertola.
+ * Stai facendo un tentativo su quella casella.
+ *
+ * Se è la soluzione -> la lucertola viene scoperta.
+ * Se è sbagliata -> errore.
+ */
+function clickCell(r,c){
+ if(state[r][c]==="found")return;
+
+ if(mode==="x"){
+  state[r][c]=state[r][c]==="x"?"":"x";
+  render();return;
+ }
+
+ if(solution[r]===c){
+  state[r][c]="found";
+  msg.textContent="🦎 Trovata! Ottimo!";
+  msg.className="message good";
+ }else{
+  mistakes++;
+  mistakesEl.textContent=mistakes;
+  msg.textContent="❌ Qui non c'è una lucertola!";
+  msg.className="message bad";
+
+  const cells=board.children;
+  const cell=cells[r*N+c];
+  cell.classList.add("error");
+  setTimeout(()=>cell.classList.remove("error"),350);
+ }
+ update();
+ render();
+ checkWin();
+}
+
+function update(){
+ let found=0;
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(state[r][c]==="found")found++;
+ foundEl.textContent=found;
+}
+
+function checkWin(){
+ let found=0;
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(state[r][c]==="found")found++;
+ if(found===N){
+  msg.textContent=`🎉 Hai trovato tutte le ${N} lucertole!`;
+  msg.className="message good";
+ }
+}
+
+function checkBoard(){
+ let found=0;
+ for(let r=0;r<N;r++)for(let c=0;c<N;c++)if(state[r][c]==="found")found++;
+ if(found===N)msg.textContent="🎉 Puzzle completato!";
+ else msg.textContent=`🔎 Hai trovato ${found}/${N} lucertole.`;
+ msg.className=found===N?"message good":"message";
+}
+
+function setMode(m){
+ mode=m;
+ lizardBtn.classList.toggle("active",m==="lizard");
+ xBtn.classList.toggle("active",m==="x");
+}
+
+lizardBtn.onclick=()=>setMode("lizard");
+xBtn.onclick=()=>setMode("x");
+document.getElementById("newGame").onclick=generate;
+document.getElementById("check").onclick=checkBoard;
+sizeSel.onchange=generate;
+levelSel.onchange=generate;
+
+generate();
+</script>
+</body>
+</html>
