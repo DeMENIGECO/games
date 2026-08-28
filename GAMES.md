@@ -35,3 +35,15 @@ Un gioco endless game in cui mi fate correre!
 - 🌍 PR: [#02](../../pull/2)
 
 👉 [Vai a CorriDome](CorriDome)
+
+## 🍉 Fruit Tiles
+
+Un gioco in cui devi accoppiare le tessere.
+
+- 🎮 Genere: Puzzle
+- 🔢 Versione: 1.0.0
+- 💻 Piattaforma: Web
+- 📁 Cartella: `FuitTiles`
+- 🌍 PR: [#04](../../pull/4)
+
+👉 [Vai a Fruit Tiles](FuitTiles)
