@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Fruit Tiles — 30 Livelli</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Arial,sans-serif}
+body{background:
+linear-gradient(#347bb5 0,#6ea9cf 28%,#6f8745 29%,#c69743 67%,#3e612e 100%);
+display:flex;justify-content:center;color:#fff}
+#app{width:min(100vw,700px);height:100%;position:relative;overflow:hidden}
+header{height:116px;padding:13px 14px 5px;text-align:center;position:relative;z-index:100}
+.top{display:flex;align-items:center;justify-content:space-between}
+.circle{width:48px;height:48px;border-radius:50%;border:3px solid white;background:#102f62dd;color:white;font-size:27px;box-shadow:0 3px 7px #0007}
+.title{font-size:25px;font-weight:900;text-shadow:0 2px 3px #234}
+.subtitle{font-size:11px;text-shadow:0 1px 2px #234}
+.coins{background:#102f62e8;border-radius:25px;padding:9px 13px;font-weight:bold}
+.progress{height:6px;background:#ffffff55;border-radius:10px;margin:9px 20px}
+#progressBar{height:100%;width:3.33%;background:#ffd33d;border-radius:10px}
+#board{position:absolute;left:0;right:0;top:110px;bottom:91px;overflow:hidden}
+.tile{
+position:absolute;width:68px;height:68px;border-radius:14px;
+background:linear-gradient(145deg,#fff 0%,#f0f0f0 65%,#d8d8d8 100%);
+border:3px solid #fff;
+box-shadow:0 6px 0 #999,0 9px 12px #0007;
+display:flex;align-items:center;justify-content:center;
+font-size:40px;cursor:pointer;user-select:none;
+transition:transform .12s,filter .12s,opacity .2s;
+}
+.tile:active{transform:translateY(4px)}
+.tile.blocked{filter:brightness(.78)}
+.tile.selected{transform:translateY(-6px) scale(1.06);border-color:#ffd83d;box-shadow:0 10px 0 #c49b20,0 12px 16px #0007}
+.tile.gone{opacity:0;transform:scale(.3)}
+#tray{
+position:absolute;left:0;right:0;bottom:91px;height:76px;
+display:flex;justify-content:center;align-items:center;gap:5px;
+z-index:150;pointer-events:none
+}
+.slot{width:48px;height:60px;border:3px solid #ffffff88;border-radius:10px;background:#16365b55}
+.trayTile{width:48px;height:60px;position:relative;pointer-events:none;box-shadow:0 4px 0 #999,0 5px 8px #0006;font-size:28px;border-radius:10px}
+footer{
+position:absolute;left:0;right:0;bottom:0;height:91px;z-index:200;
+display:flex;justify-content:center;align-items:center;gap:24px;
+background:linear-gradient(transparent,#102b22aa 20%,#102b22e8)
+}
+.action{width:64px;height:64px;border-radius:50%;border:3px solid white;background:#102f62ee;color:#fff;font-size:24px;box-shadow:0 4px 8px #0007}
+.action small{display:block;font-size:8px;font-weight:bold}
+#message{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);padding:12px 18px;border-radius:18px;background:#102f62ee;font-weight:bold;display:none;z-index:500;white-space:nowrap}
+.overlay{position:absolute;inset:0;background:#071e3bd9;z-index:600;display:none;align-items:center;justify-content:center;text-align:center;padding:18px}
+.card{background:white;color:#17375b;border-radius:25px;padding:24px;max-width:390px;width:94%;box-shadow:0 15px 45px #0009}
+.card h1{margin:5px 0 10px}.card button{border:0;border-radius:13px;background:#f5b92e;padding:12px 22px;font-weight:bold;font-size:16px}
+.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin:15px 0}
+.levels button{border:0;border-radius:10px;padding:9px;background:#dce8f3;font-weight:bold}
+.levels button.open{background:#ffd65a}
+@media(max-width:430px){
+header{height:104px}.title{font-size:21px}.circle{width:43px;height:43px}
+.tile{width:57px;height:57px;font-size:33px;border-radius:12px;box-shadow:0 5px 0 #999,0 7px 9px #0006}
+.slot{width:40px;height:52px}.trayTile{width:40px;height:52px;font-size:24px}
+#tray{gap:3px}
+}
+</style>
+</head>
+<body>
+<div id="app">
+<header>
+ <div class="top">
+  <button class="circle" onclick="levels()">☰</button>
+  <div><div class="title">LIVELLO <span id="level">1</span>/30</div><div class="subtitle">FRUIT TILES</div></div>
+  <div class="coins">🪙 <span id="coins">87</span></div>
+ </div>
+ <div class="progress"><div id="progressBar"></div></div>
+</header>
+
+<div id="board"></div>
+<div id="tray"></div>
+<div id="message"></div>
+
+<footer>
+ <button class="action" onclick="hint()">💡<small>HINT</small></button>
+ <button class="action" onclick="restart()">↻<small>RESTART</small></button>
+ <button class="action" onclick="shuffle()">🔀<small>SHUFFLE</small></button>
+</footer>
+
+<div id="win" class="overlay"><div class="card">
+<div style="font-size:52px">🎉🍉🎉</div>
+<h1>Livello completato!</h1>
+<p>Hai superato il livello <b id="won">1</b>.</p>
+<button onclick="next()">Continua ▶</button>
+</div></div>
+
+<div id="gameover" class="overlay"><div class="card">
+<div style="font-size:52px">😵</div>
+<h1>Vassoio pieno!</h1>
+<p>Non ci sono più posti liberi. Prova a ricominciare il livello.</p>
+<button onclick="restart()">Riprova</button>
+</div></div>
+
+<div id="levelMenu" class="overlay"><div class="card">
+<h1>🍓 Livelli</h1>
+<p>I livelli diventano sempre più affollati e sovrapposti.</p>
+<div class="levels" id="levelButtons"></div>
+<button onclick="closeLevels()">Chiudi</button>
+</div></div>
+</div>
+
+<script>
+const fruits=["🍕","🍒","🍍","⭐","🥬","🔔","🌙","🍉","🍎","🍋","🥕","🍬","💎","🎈","🧀","🍊","🔥","🥝","🍇","🍌","🥥","🍓"];
+const levelSeeds=[31,87,142,206,277,341,409,478,533,601,673,719,787,821,907,953,1019,1091,1163,1229,1301,1373,1441,1517,1583,1667,1733,1801,1879,1949];
+let level=+localStorage.getItem("ft_level")||1;
+let unlocked=+localStorage.getItem("ft_unlocked")||1;
+let coins=+localStorage.getItem("ft_coins")||87;
+let tiles=[],tray=[],selected=null;
+
+function rand(seed){
+ return function(){seed=(seed*1664525+1013904223)>>>0;return seed/4294967296}
+}
+function mix(a,r){
+ for(let i=a.length-1;i>0;i--){let j=Math.floor(r()*(i+1));[a[i],a[j]]=[a[j],a[i]]}
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
+
+/*
+  Ogni livello è una vera "pila" di tessere:
+  - posizioni distribuite in tutta l'area
+  - 3, 4 o 5 strati
+  - molte tessere si coprono parzialmente
+  - la tessera è cliccabile solo quando non c'è una tessera sopra
+*/
+function createLevel(n){
+ const r=rand(levelSeeds[n-1]);
+ const difficulty=n;
+ const count=18 + Math.floor((n-1)*1.55); // 18 -> circa 63
+ const total=count-(count%3);
+ let arr=[];
+
+ // griglia irregolare di punti base, così le tessere non formano righe perfette
+ const points=[];
+ for(let y=0;y<6;y++){
+  for(let x=0;x<8;x++){
+   points.push({
+    x:5+x*12.8+(r()-0.5)*7+(y%2?5:0),
+    y:5+y*14.3+(r()-0.5)*6
+   });
+  }
+ }
+ mix(points,r);
+
+ for(let i=0;i<total;i++){
+   const p=points[i%points.length];
+   // i livelli alti hanno maggiore sovrapposizione e gruppi più compatti
+   const layer=n<4?0:n<8?Math.floor(i/14):n<14?Math.floor(i/10):n<21?Math.floor(i/8):Math.floor(i/7);
+   const spread=n<7?2:n<15?5:8;
+   arr.push({
+    id:i,x:clamp(p.x+(r()-.5)*spread,2,88),
+    y:clamp(p.y+(r()-.5)*spread,2,86),
+    z:Math.min(layer,4),gone:false,v:null
+   });
+ }
+ // Ridistribuiamo gli strati: le tessere superiori sono sparse in punti diversi,
+ // proprio come una pila "a mucchio".
+ arr.forEach((t,i)=>{
+   if(i>total-12 && n>=10) t.z=Math.min(5, t.z+1);
+   if(n>=18 && r()<.22) t.z=Math.min(5,t.z+1);
+ });
+
+ // Triplette di frutta. Ogni simbolo appare 3 volte.
+ const vals=[];
+ for(let i=0;i<total/3;i++){let v=fruits[(i+n*3)%fruits.length];vals.push(v,v,v)}
+ mix(vals,r);
+ arr.forEach((t,i)=>t.v=vals[i]);
+ return arr;
+}
+function isBlocked(t){
+ return tiles.some(o=>!o.gone && o.z>t.z &&
+   Math.abs((o.x+3)-(t.x+3))<10.5 &&
+   Math.abs((o.y+4)-(t.y+4))<10.5);
+}
+function start(){
+ selected=null;tray=[];
+ tiles=createLevel(level);
+ updateUI();render();
+}
+function updateUI(){
+ document.getElementById("level").textContent=level;
+ document.getElementById("coins").textContent=coins;
+ document.getElementById("progressBar").style.width=(level/30*100)+"%";
+ localStorage.setItem("ft_level",level);
+ localStorage.setItem("ft_unlocked",unlocked);
+ localStorage.setItem("ft_coins",coins);
+}
+function render(){
+ const b=document.getElementById("board");b.innerHTML="";
+ tiles.filter(t=>!t.gone).sort((a,b)=>a.z-b.z||a.id-b.id).forEach(t=>{
+   const e=document.createElement("div");
+   e.className="tile"+(isBlocked(t)?" blocked":"")+(selected===t.id?" selected":"");
+   e.textContent=t.v;
+   e.style.left=t.x+"%";e.style.top=t.y+"%";
+   e.style.zIndex=10+t.z*100+t.id;
+   e.onclick=()=>choose(t.id);
+   b.appendChild(e);
+ });
+ renderTray();
+}
+function renderTray(){
+ const tr=document.getElementById("tray");tr.innerHTML="";
+ for(let i=0;i<7;i++){
+   const s=document.createElement("div");s.className="slot";
+   if(tray[i]){
+     const e=document.createElement("div");e.className="tile trayTile";e.textContent=tray[i].v;
+     s.appendChild(e);
+   }
+   tr.appendChild(s);
+ }
+}
+function choose(id){
+ const t=tiles.find(x=>x.id===id);
+ if(!t||t.gone)return;
+ if(isBlocked(t)){toast("🔒 Questa tessera è coperta!");return}
+ selected=id;render();
+ setTimeout(()=>takeTile(id),80);
+}
+function takeTile(id){
+ const t=tiles.find(x=>x.id===id);
+ if(!t||t.gone)return;
+ t.gone=true;selected=null;
+ tray.push({v:t.v});
+ // Inserimento ordinato per simbolo: rende le triplette facili da vedere,
+ // ma lascia comunque la strategia al giocatore.
+ tray.sort((a,b)=>fruits.indexOf(a.v)-fruits.indexOf(b.v));
+ checkMatches();
+ render();
+ if(tiles.every(t=>t.gone)){setTimeout(win,250);return}
+ if(tray.length>=7 && !tiles.every(t=>t.gone)){setTimeout(()=>document.getElementById("gameover").style.display="flex",150)}
+}
+function checkMatches(){
+ let changed=true;
+ while(changed){
+  changed=false;
+  const counts={};
+  tray.forEach(x=>counts[x.v]=(counts[x.v]||0)+1);
+  for(const v in counts){
+   if(counts[v]>=3){
+    let removed=0;
+    tray=tray.filter(x=>x.v===v && removed<3 ? (++removed,false):true);
+    coins+=3;changed=true;
+    break;
+   }
+  }
+ }
+ updateUI();
+}
+function hint(){
+ const free=tiles.filter(t=>!t.gone&&!isBlocked(t));
+ const groups={};
+ for(const t of free)(groups[t.v]??=[]).push(t);
+ const g=Object.values(groups).find(a=>a.length>=2);
+ if(g){
+  selected=g[0].id;render();
+  setTimeout(()=>{if(!g[0].gone){selected=g[1].id;render()}},500);
+ }else toast("💡 Nessuna coppia scoperta!");
+}
+function shuffle(){
+ const left=tiles.filter(t=>!t.gone);
+ const vals=left.map(t=>t.v),r=rand(Date.now()>>>0);mix(vals,r);
+ left.forEach((t,i)=>t.v=vals[i]);selected=null;render();toast("🔀 Tessere mescolate!");
+}
+function restart(){document.getElementById("gameover").style.display="none";document.getElementById("win").style.display="none";start()}
+function win(){
+ document.getElementById("won").textContent=level;
+ document.getElementById("win").style.display="flex";
+ if(level<30){unlocked=Math.max(unlocked,level+1);updateUI()}
+}
+function next(){
+ document.getElementById("win").style.display="none";
+ if(level<30){level++;unlocked=Math.max(unlocked,level);start()}
+ else toast("🏆 Hai completato tutti i 30 livelli!");
+}
+function levels(){
+ const box=document.getElementById("levelButtons");box.innerHTML="";
+ for(let i=1;i<=30;i++){
+  const b=document.createElement("button");
+  b.textContent=i<=unlocked?i:"🔒";
+  if(i<=unlocked)b.className="open";
+  b.onclick=()=>{if(i<=unlocked){level=i;closeLevels();start()}else toast("Completa prima i livelli precedenti!")};
+  box.appendChild(b);
+ }
+ document.getElementById("levelMenu").style.display="flex";
+}
+function closeLevels(){document.getElementById("levelMenu").style.display="none"}
+function toast(s){
+ const e=document.getElementById("message");e.textContent=s;e.style.display="block";
+ clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>e.style.display="none",1100);
+}
+start();
+</script>
+</body>
+</html>
